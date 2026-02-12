@@ -153,6 +153,23 @@ if "use_llm" not in st.session_state:
 # ---------------------------------------------------------------------------
 # Agent initialization
 # ---------------------------------------------------------------------------
+def _ensure_demo_data():
+    """Inject demo data if the index is empty (stateless cloud deploy)."""
+    index_dir = Path(__file__).parent.parent / "indexes" / "chroma"
+    if (index_dir / "vectors.npy").exists():
+        return  # already populated
+
+    # Create required directories
+    base = Path(__file__).parent.parent
+    for d in ["data/raw", "data/clean", "data/meta", "data/events",
+              "data/memory", "data/responses", "indexes/chroma",
+              "db", "products", "batch_results", "runs"]:
+        (base / d).mkdir(parents=True, exist_ok=True)
+
+    from scripts.inject_demo_data import inject_demo_data
+    inject_demo_data()
+
+
 def init_agent(api_key: Optional[str] = None):
     """Initialize the Runtime Agent."""
     if api_key:
@@ -160,6 +177,8 @@ def init_agent(api_key: Optional[str] = None):
         st.session_state.use_llm = True
 
     try:
+        _ensure_demo_data()
+
         from pipeline.config import load_pipeline_config
         from pipeline.database import init_database
 
