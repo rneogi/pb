@@ -1,0 +1,90 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Data directories (generated - large files)
+data/raw/
+data/clean/
+data/meta/
+data/events/
+data/memory/
+data/responses/
+
+# Keep directory structure
+!data/raw/.gitkeep
+!data/clean/.gitkeep
+!data/meta/.gitkeep
+!data/events/.gitkeep
+!data/memory/.gitkeep
+!data/responses/.gitkeep
+
+# Vector indexes (generated)
+indexes/chroma/
+!indexes/chroma/.gitkeep
+
+# Database (generated)
+db/*.sqlite
+db/*.db
+
+# Products (generated digests)
+products/
+!products/.gitkeep
+
+# Pipeline runs (generated)
+runs/
+
+# Batch results (generated)
+batch_results/
+!batch_results/.gitkeep
+
+# Environment / secrets
+.env
+.env.local
+*.env
+!.env.example
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OneDrive sync artifacts
+_ul*/

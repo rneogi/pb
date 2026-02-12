@@ -1,0 +1,164 @@
+# Public PitchBook Observer - Source Configuration
+# ================================================
+# This file defines all public data sources to be crawled.
+# IMPORTANT: Only add publicly accessible URLs. No logins, paywalls, or gated sources.
+
+# Global settings
+settings:
+  default_fetch_mode: http  # http | playwright
+  default_rate_limit: 2.0   # seconds between requests per domain
+  default_retries: 3
+  default_backoff_factor: 2.0
+  user_agent: "PublicPitchBookObserver/1.0 (Research Bot; respects robots.txt)"
+
+# Source categories
+sources:
+  # =========================================================================
+  # A) SEC EDGAR Filings (Form D - public funding disclosures)
+  # =========================================================================
+  sec_edgar:
+    enabled: true
+    source_kind: filing
+    fetch_mode: http
+    rate_limit: 1.0  # Be gentle with government sites
+    entries:
+      - name: "SEC EDGAR Form D Current"
+        url: "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=D&company=&dateb=&owner=include&count=100&output=atom"
+        format: atom
+        description: "Recent Form D filings (private placement exemptions)"
+
+  # =========================================================================
+  # B) PR Wire Services (RSS feeds - public releases)
+  # =========================================================================
+  pr_wires:
+    enabled: true
+    source_kind: pr_wire
+    fetch_mode: http
+    rate_limit: 2.0
+    entries:
+      - name: "PR Newswire - Business Technology"
+        url: "https://www.prnewswire.com/rss/technology-latest-news.rss"
+        format: rss
+        description: "Technology press releases"
+
+      - name: "PR Newswire - Financial Services"
+        url: "https://www.prnewswire.com/rss/financial-services-latest-news.rss"
+        format: rss
+        description: "Financial services press releases"
+
+      - name: "GlobeNewswire - Technology"
+        url: "https://www.globenewswire.com/RssFeed/subjectcode/20-Technology/feedTitle/GlobeNewswire%20-%20Technology"
+        format: rss
+        description: "Technology news via GlobeNewswire"
+
+      - name: "GlobeNewswire - Business"
+        url: "https://www.globenewswire.com/RssFeed/subjectcode/10-Business/feedTitle/GlobeNewswire%20-%20Business"
+        format: rss
+        description: "Business news via GlobeNewswire"
+
+  # =========================================================================
+  # C) News & Trade Press (public pages, RSS preferred)
+  # =========================================================================
+  news_sources:
+    enabled: true
+    source_kind: news
+    fetch_mode: http
+    rate_limit: 3.0
+    entries:
+      - name: "TechCrunch Feed"
+        url: "https://techcrunch.com/feed/"
+        format: rss
+        description: "TechCrunch RSS - startup and tech news"
+
+      - name: "Hacker News Best"
+        url: "https://hnrss.org/best"
+        format: rss
+        description: "Top Hacker News stories"
+
+      # Placeholder for user expansion
+      # - name: "Your Custom News Source"
+      #   url: "https://example.com/rss"
+      #   format: rss
+      #   description: "Add your own news sources here"
+
+  # =========================================================================
+  # D) Company Press/News Pages (Watchlist - user configurable)
+  # =========================================================================
+  company_watchlist:
+    enabled: true
+    source_kind: company_press
+    fetch_mode: http  # Change to playwright if JS rendering needed
+    rate_limit: 5.0
+    entries:
+      # Example entries - users should customize this list
+      - name: "Stripe Blog"
+        url: "https://stripe.com/blog"
+        format: html
+        description: "Stripe company blog"
+
+      - name: "OpenAI Blog"
+        url: "https://openai.com/blog"
+        format: html
+        fetch_mode: playwright  # Needs JS rendering
+        description: "OpenAI company blog"
+
+      # Add your watched companies here:
+      # - name: "Company Name Press"
+      #   url: "https://company.com/news"
+      #   format: html
+      #   description: "Company press releases"
+
+  # =========================================================================
+  # E) Investor Portfolio Pages (Watchlist - user configurable)
+  # =========================================================================
+  investor_watchlist:
+    enabled: true
+    source_kind: investor_portfolio
+    fetch_mode: http
+    rate_limit: 5.0
+    entries:
+      # Example VC/PE portfolio pages (public listings only)
+      - name: "a16z Portfolio"
+        url: "https://a16z.com/portfolio/"
+        format: html
+        fetch_mode: playwright
+        description: "Andreessen Horowitz portfolio companies"
+
+      - name: "Sequoia Companies"
+        url: "https://www.sequoiacap.com/our-companies/"
+        format: html
+        fetch_mode: playwright
+        description: "Sequoia Capital portfolio"
+
+      - name: "Y Combinator Companies"
+        url: "https://www.ycombinator.com/companies"
+        format: html
+        fetch_mode: playwright
+        description: "YC company directory"
+
+      # Add your watched investors here:
+      # - name: "VC Firm Portfolio"
+      #   url: "https://vcfirm.com/portfolio"
+      #   format: html
+      #   description: "Portfolio page"
+
+  # =========================================================================
+  # F) Telemetry - Careers/ATS Pages (Optional, watchlist driven)
+  # =========================================================================
+  telemetry_watchlist:
+    enabled: false  # Disabled by default
+    source_kind: telemetry
+    fetch_mode: playwright  # Usually needs JS
+    rate_limit: 10.0
+    entries:
+      # Example career pages - enable and customize as needed
+      - name: "Stripe Careers"
+        url: "https://stripe.com/jobs"
+        format: html
+        description: "Stripe job listings"
+
+      # Add your watched career pages here:
+      # - name: "Company Careers"
+      #   url: "https://company.com/careers"
+      #   format: html
+      #   description: "Company job listings"

@@ -1,0 +1,9 @@
+run = "pip install -q pyyaml httpx[http2] beautifulsoup4 lxml trafilatura fastapi uvicorn pydantic numpy scikit-learn python-dotenv anthropic sentence-transformers streamlit plotly pandas && python scripts/inject_demo_data.py && streamlit run app/streamlit_chat.py --server.port 5000 --server.address 0.0.0.0"
+language = "python3"
+
+[deployment]
+run = "streamlit run app/streamlit_chat.py --server.port 5000 --server.address 0.0.0.0"
+
+[[ports]]
+localPort = 5000
+externalPort = 80

@@ -1,0 +1,280 @@
+# Public PitchBook Observer - Pipeline Configuration
+# ==================================================
+# Controls pipeline behavior, thresholds, and Phase 2 feature flags.
+
+pipeline:
+  # Current pipeline version
+  version: "1.0.0"
+
+  # Week format
+  week_format: "%Y-W%W"  # e.g., 2026-W05
+
+# Crawl stage settings
+crawl:
+  # Global timeout for HTTP requests (seconds)
+  timeout: 30
+
+  # Maximum concurrent requests (per domain)
+  max_concurrent: 2
+
+  # Retry configuration
+  max_retries: 3
+  backoff_factor: 2.0
+  retry_on_status: [429, 500, 502, 503, 504]
+
+  # robots.txt compliance
+  respect_robots: true
+
+  # Playwright settings (for JS rendering)
+  playwright:
+    headless: true
+    timeout: 60000  # ms
+    wait_until: "networkidle"
+
+# Clean stage settings
+clean:
+  # Chunking parameters
+  chunk_size_tokens: 450
+  chunk_overlap_tokens: 80
+
+  # Approximate tokens per character (for estimation)
+  chars_per_token: 4
+
+  # Minimum content length to process (characters)
+  min_content_length: 100
+
+  # Trafilatura settings
+  trafilatura:
+    include_comments: false
+    include_tables: true
+    favor_precision: true
+
+# Delta stage settings
+delta:
+  # How many weeks back to compare (1 = previous week only)
+  compare_weeks_back: 1
+
+  # Mark as stale if not seen for N weeks
+  stale_threshold_weeks: 4
+
+# Evaluate stage settings
+evaluate:
+  # Keyword patterns for bucket classification
+  buckets:
+    deal_signal:
+      keywords:
+        - "raises"
+        - "raised"
+        - "funding"
+        - "Series A"
+        - "Series B"
+        - "Series C"
+        - "Series D"
+        - "seed round"
+        - "seed funding"
+        - "venture"
+        - "investment"
+        - "acquires"
+        - "acquired"
+        - "acquisition"
+        - "merger"
+        - "IPO"
+        - "valuation"
+        - "capital"
+        - "financing"
+      source_kinds:
+        - filing
+        - pr_wire
+        - news
+
+    investor_graph_change:
+      keywords:
+        - "portfolio"
+        - "invested"
+        - "new fund"
+        - "partner"
+        - "LP"
+      source_kinds:
+        - investor_portfolio
+
+    company_profile_change:
+      keywords:
+        - "about"
+        - "leadership"
+        - "team"
+        - "executive"
+        - "CEO"
+        - "CTO"
+        - "founder"
+        - "appoints"
+        - "announces"
+      source_kinds:
+        - company_press
+
+    telemetry_change:
+      keywords:
+        - "careers"
+        - "hiring"
+        - "jobs"
+        - "open positions"
+      source_kinds:
+        - telemetry
+
+# Schedule stage settings
+schedule:
+  # Phase 1 jobs (always enabled)
+  phase1_jobs:
+    - index_refresh
+    - pargv_batch_digest
+
+  # Phase 2 jobs (stubs, disabled by default)
+  phase2_jobs:
+    extract_claims:
+      enabled: false
+    entity_resolution:
+      enabled: false
+    assemble_records:
+      enabled: false
+
+# Index stage settings
+index:
+  # Embedding model configuration
+  embeddings:
+    # Provider: local | openai | vertex (only local implemented in Phase 1)
+    provider: local
+
+    # Local model (sentence-transformers)
+    local_model: "all-MiniLM-L6-v2"
+
+    # Fallback to TF-IDF if model unavailable
+    fallback_to_tfidf: true
+
+    # Embedding dimension (depends on model)
+    dimension: 384  # all-MiniLM-L6-v2
+
+  # Chroma settings
+  chroma:
+    collection_name: "pitchbook_observer"
+    persist_directory: "./indexes/chroma"
+
+  # Retrieval settings
+  retrieval:
+    default_top_k: 10
+    max_top_k: 50
+
+# PARGV batch settings
+pargv_batch:
+  # Maximum items per section in digest
+  max_deal_signals: 20
+  max_investor_changes: 10
+  max_company_changes: 10
+
+  # Snippet length (characters)
+  snippet_length: 300
+
+# Chat/API settings
+chat:
+  # Default retrieval settings
+  default_top_k: 8
+  default_mode: "hybrid"  # hybrid | keyword | vector
+
+  # Confidence thresholds
+  confidence:
+    high_min_score: 0.8
+    medium_min_score: 0.5
+    # Below medium_min_score = low confidence
+
+  # LLM configuration (used by Runtime Agent)
+  llm:
+    provider: anthropic
+    model: claude-opus-4-5-20251101
+    max_tokens: 1024
+    # API key: Set ANTHROPIC_API_KEY environment variable
+
+# Phase 2 feature flags (not implemented yet)
+phase2:
+  claims_extraction:
+    enabled: false
+    confidence_threshold: 0.7
+
+  entity_resolution:
+    enabled: false
+    similarity_threshold: 0.85
+
+  record_assembly:
+    enabled: false
+    state_machine: "draft -> pending_review -> confirmed -> stale"
+
+# =========================================================================
+# Agent Configuration (Multi-Agent Architecture)
+# =========================================================================
+
+agents:
+  # Ingest Agent - Weekly data collection
+  # Runs: crawl -> clean -> delta -> evaluate
+  # Schedule: Sunday midnight (or manual trigger)
+  ingest:
+    schedule:
+      day_of_week: sun  # Sunday
+      hour: 0           # Midnight
+      minute: 0
+    immediate_run_on_start: true
+    stages:
+      - crawl
+      - clean
+      - delta
+      - evaluate
+
+  # Compilation Agent - Knowledge base synthesis
+  # Triggered by: ingest_complete event
+  # Runs: index stage
+  compilation:
+    watch_events: true
+    full_reindex_threshold_weeks: 4
+
+  # Runtime Agent - Query-time processing
+  # Triggered by: HTTP /chat/v2 request
+  # Runs: retrieve -> rerank -> augment -> generate -> validate
+  runtime:
+    rerank_strategy: keyword_boost  # cross_encoder | keyword_boost | rrf
+    rerank_top_k: 5
+    use_llm: true
+    use_memory: true
+
+  # Presentation Agent - Visualization
+  # Triggered by: HTTP /visualize request
+  # Output: Streamlit KPI dashboard
+  presentation:
+    streamlit_port: 8501
+    auto_launch: false
+
+  # Memory Agent (SmartCard) - Session context persistence
+  # Triggered by: After each Runtime Agent response
+  # Features: Context change detection, diff-merge updates, knowledge claims
+  memory:
+    enabled: true
+    mode: diff_merge  # diff_merge (only merges new info)
+    context_coherence_threshold: 0.4  # Below this, skip memory augmentation
+    max_claims: 20
+    max_query_history: 10
+    max_sources: 15
+
+# LLM Configuration (for Runtime Agent)
+llm:
+  provider: anthropic
+  model: claude-opus-4-5-20251101
+  max_tokens: 1024
+  # API key: Set ANTHROPIC_API_KEY environment variable
+
+# Memory persistence settings (SmartCard)
+memory:
+  enabled: true
+  path: data/memory/smartcard.json
+  mode: diff_merge  # diff_merge (only adds new info) | overwrite
+  context_coherence_threshold: 0.4  # Below this, memory is not used
+
+# Visualization settings
+visualization:
+  enabled: true
+  streamlit_port: 8501
+  auto_extract_kpis: true
