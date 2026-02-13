@@ -1,7 +1,7 @@
 """
 PitchBook Observer Agent - Web Chat Interface
 ==============================================
-Streamlit-based chat UI for the marketing guy.
+Streamlit-based chat UI with integrated visualization and memory.
 Run with: streamlit run app/streamlit_chat.py
 """
 
@@ -25,6 +25,14 @@ except ImportError:
 
 import streamlit as st
 
+# Optional visualization imports
+try:
+    import plotly.graph_objects as go
+    HAS_PLOTLY = True
+except ImportError:
+    HAS_PLOTLY = False
+    go = None
+
 # ---------------------------------------------------------------------------
 # Page config (must be first Streamlit call)
 # ---------------------------------------------------------------------------
@@ -36,107 +44,61 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# Custom CSS for a clean, modern chat look
+# Custom CSS
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
-    /* Hide Streamlit chrome */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* Chat container */
-    .stChatMessage {
-        max-width: 900px;
-        margin: 0 auto;
-    }
+    .stChatMessage { max-width: 900px; margin: 0 auto; }
 
-    /* Clean header */
     .agent-header {
-        text-align: center;
-        padding: 1.5rem 0 1rem 0;
-        border-bottom: 1px solid #e0e0e0;
-        margin-bottom: 1rem;
+        text-align: center; padding: 1.5rem 0 1rem 0;
+        border-bottom: 1px solid #e0e0e0; margin-bottom: 1rem;
     }
-    .agent-header h1 {
-        font-size: 1.6rem;
-        font-weight: 600;
-        color: #1a1a2e;
-        margin: 0;
-    }
-    .agent-header p {
-        font-size: 0.85rem;
-        color: #888;
-        margin: 0.25rem 0 0 0;
-    }
+    .agent-header h1 { font-size: 1.6rem; font-weight: 600; color: #1a1a2e; margin: 0; }
+    .agent-header p { font-size: 0.85rem; color: #888; margin: 0.25rem 0 0 0; }
 
-    /* Status pill */
     .status-online {
-        display: inline-block;
-        background: #d4edda;
-        color: #155724;
-        padding: 2px 10px;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        margin-top: 0.5rem;
+        display: inline-block; background: #d4edda; color: #155724;
+        padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; margin-top: 0.5rem;
     }
     .status-offline {
-        display: inline-block;
-        background: #fff3cd;
-        color: #856404;
-        padding: 2px 10px;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        margin-top: 0.5rem;
+        display: inline-block; background: #fff3cd; color: #856404;
+        padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; margin-top: 0.5rem;
     }
 
-    /* Citation card */
     .citation-card {
-        background: #f8f9fa;
-        border-left: 3px solid #4a90d9;
-        padding: 0.5rem 0.75rem;
-        margin: 0.25rem 0;
-        border-radius: 0 4px 4px 0;
-        font-size: 0.85rem;
+        background: #f8f9fa; border-left: 3px solid #4a90d9;
+        padding: 0.5rem 0.75rem; margin: 0.25rem 0;
+        border-radius: 0 4px 4px 0; font-size: 0.85rem;
     }
-    .citation-card .source-name {
-        color: #4a90d9;
-        font-weight: 600;
-    }
-    .citation-card .snippet {
-        color: #555;
-        font-size: 0.8rem;
-    }
+    .citation-card .source-name { color: #4a90d9; font-weight: 600; }
+    .citation-card .snippet { color: #555; font-size: 0.8rem; }
 
-    /* Confidence badge */
     .conf-high { background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
     .conf-medium { background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
     .conf-low { background: #f8d7da; color: #721c24; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
 
-    /* KPI row */
-    .kpi-row {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-        margin: 0.5rem 0;
-    }
+    .kpi-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 0; }
     .kpi-chip {
-        background: #e8f4fd;
-        color: #1a5276;
-        padding: 3px 10px;
-        border-radius: 12px;
-        font-size: 0.78rem;
+        background: #e8f4fd; color: #1a5276;
+        padding: 3px 10px; border-radius: 12px; font-size: 0.78rem;
     }
+
+    .mem-stat { font-size: 0.8rem; color: #555; margin: 2px 0; }
+    .mem-label { font-weight: 600; color: #333; }
 </style>
 """, unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
-# Session state initialization
+# Session state
 # ---------------------------------------------------------------------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
-    # New session — clear episodic memory from any previous session
     try:
         from pipeline.agents.memory_agent import MemoryAgent
         MemoryAgent().clear()
@@ -148,6 +110,8 @@ if "runtime_agent" not in st.session_state:
     st.session_state.runtime_agent = None
 if "use_llm" not in st.session_state:
     st.session_state.use_llm = False
+if "query_count" not in st.session_state:
+    st.session_state.query_count = 0
 
 
 # ---------------------------------------------------------------------------
@@ -157,9 +121,8 @@ def _ensure_demo_data():
     """Inject demo data if the index is empty (stateless cloud deploy)."""
     index_dir = Path(__file__).parent.parent / "indexes" / "chroma"
     if (index_dir / "vectors.npy").exists():
-        return  # already populated
+        return
 
-    # Create required directories
     base = Path(__file__).parent.parent
     for d in ["data/raw", "data/clean", "data/meta", "data/events",
               "data/memory", "data/responses", "indexes/chroma",
@@ -192,7 +155,6 @@ def init_agent(api_key: Optional[str] = None):
             use_memory=True,
         )
 
-        # Clear episodic memory for fresh session
         try:
             from pipeline.agents.memory_agent import MemoryAgent
             MemoryAgent().clear()
@@ -213,20 +175,103 @@ def run_query(query: str) -> Dict[str, Any]:
     if not agent:
         return {"answer": "Agent not initialized.", "confidence_label": "low",
                 "citations": [], "timings": {}, "query_info": {}, "notes": []}
+    return agent.run(query=query, top_k=8, rerank_top_k=5, mode="hybrid")
 
-    return agent.run(
-        query=query,
-        top_k=8,
-        rerank_top_k=5,
-        mode="hybrid",
+
+def get_memory_status() -> Dict[str, Any]:
+    """Get current memory agent status for sidebar."""
+    try:
+        from pipeline.agents.memory_agent import MemoryAgent
+        return MemoryAgent().get_status()
+    except Exception:
+        return {}
+
+
+# ---------------------------------------------------------------------------
+# Inline visualization helpers
+# ---------------------------------------------------------------------------
+def render_confidence_gauge(conf_label: str):
+    """Confidence gauge using Plotly."""
+    if not HAS_PLOTLY:
+        return
+    conf_map = {"high": 85, "medium": 55, "low": 25}
+    value = conf_map.get(conf_label, 50)
+    color = "#2ecc71" if value > 70 else "#f39c12" if value > 40 else "#e74c3c"
+
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number", value=value,
+        title={"text": "Confidence", "font": {"size": 14}},
+        gauge={
+            "axis": {"range": [0, 100], "tickwidth": 1},
+            "bar": {"color": color},
+            "steps": [
+                {"range": [0, 33], "color": "#ffcccc"},
+                {"range": [33, 66], "color": "#ffffcc"},
+                {"range": [66, 100], "color": "#ccffcc"},
+            ],
+        },
+        number={"suffix": "%", "font": {"size": 20}},
+    ))
+    fig.update_layout(height=180, margin=dict(t=40, b=10, l=30, r=30))
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def render_timing_bars(timings: Dict[str, float]):
+    """Pipeline timing breakdown as horizontal bars."""
+    if not HAS_PLOTLY or not timings:
+        return
+    stages, values = [], []
+    for key, label in [("retrieval_ms", "Retrieval"), ("reranking_ms", "Reranking"),
+                       ("memory_ms", "Memory"), ("generation_ms", "Generation"),
+                       ("validation_ms", "Validation")]:
+        if key in timings:
+            stages.append(label)
+            values.append(round(timings[key], 1))
+    if not stages:
+        return
+
+    colors = ["#3498db", "#2ecc71", "#9b59b6", "#e74c3c", "#f39c12"]
+    fig = go.Figure(go.Bar(
+        x=values, y=stages, orientation="h",
+        marker_color=colors[:len(stages)],
+        text=[f"{v:.0f}ms" for v in values], textposition="auto",
+    ))
+    fig.update_layout(
+        title={"text": "Pipeline Timing", "font": {"size": 14}},
+        height=180, margin=dict(t=40, b=10, l=80, r=20),
+        xaxis_title="ms", yaxis=dict(autorange="reversed"),
     )
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def render_source_breakdown(citations: List[Dict]):
+    """Pie chart of source types."""
+    if not HAS_PLOTLY or not citations:
+        return
+    sources = {}
+    for c in citations:
+        src = c.get("source_kind", c.get("source_name", "Unknown"))
+        sources[src] = sources.get(src, 0) + 1
+    if not sources:
+        return
+
+    fig = go.Figure(go.Pie(
+        labels=list(sources.keys()), values=list(sources.values()),
+        hole=0.4, textinfo="label+value",
+        marker=dict(colors=["#3498db", "#2ecc71", "#e74c3c", "#f39c12", "#9b59b6"]),
+    ))
+    fig.update_layout(
+        title={"text": "Source Types", "font": {"size": 14}},
+        height=200, margin=dict(t=40, b=10, l=10, r=10),
+        showlegend=False,
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
 
 # ---------------------------------------------------------------------------
 # Welcome / API key screen
 # ---------------------------------------------------------------------------
 if not st.session_state.agent_ready:
-    # Auto-detect API key from environment (e.g. Replit Secrets, .env)
     env_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if env_key and env_key.startswith("sk-ant"):
         with st.spinner("Agent is initializing..."):
@@ -250,20 +295,17 @@ if not st.session_state.agent_ready:
             "This agent monitors public deal activity — funding rounds, "
             "acquisitions, IPOs — and answers your questions with cited sources."
         )
-
         st.markdown("")
         st.markdown("**Enter your Anthropic API key for the full Claude Opus experience.**")
         st.markdown(
             '<span style="font-size:0.8rem; color:#888;">'
-            'Get one free at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>'
-            '</span>',
+            'Get one free at <a href="https://console.anthropic.com" target="_blank">'
+            'console.anthropic.com</a></span>',
             unsafe_allow_html=True,
         )
 
         api_key = st.text_input(
-            "API Key",
-            type="password",
-            placeholder="sk-ant-...",
+            "API Key", type="password", placeholder="sk-ant-...",
             label_visibility="collapsed",
         )
 
@@ -276,7 +318,6 @@ if not st.session_state.agent_ready:
                             st.rerun()
                 else:
                     st.warning("Please enter a valid API key (starts with sk-ant)")
-
         with col_skip:
             if st.button("Skip (offline mode)", use_container_width=True):
                 with st.spinner("Agent is initializing..."):
@@ -287,7 +328,7 @@ if not st.session_state.agent_ready:
 
 
 # ---------------------------------------------------------------------------
-# Main chat interface (agent is ready)
+# Main chat interface
 # ---------------------------------------------------------------------------
 
 # Header
@@ -300,7 +341,9 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Sidebar with quick actions
+# ---------------------------------------------------------------------------
+# Sidebar: controls + memory status
+# ---------------------------------------------------------------------------
 with st.sidebar:
     st.markdown("### Agent Controls")
 
@@ -311,73 +354,130 @@ with st.sidebar:
         except Exception:
             pass
         st.session_state.messages = []
+        st.session_state.query_count = 0
         st.rerun()
 
     st.markdown("---")
+
+    # Memory Agent Status
+    st.markdown("### Memory Agent")
+    mem_status = get_memory_status()
+    if mem_status.get("has_memory", True) and mem_status.get("total_queries", 0) > 0:
+        st.markdown(
+            f'<div class="mem-stat"><span class="mem-label">Queries:</span> '
+            f'{mem_status.get("total_queries", 0)}</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f'<div class="mem-stat"><span class="mem-label">Claims:</span> '
+            f'{mem_status.get("claims_count", 0)}</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f'<div class="mem-stat"><span class="mem-label">Entities:</span> '
+            f'{mem_status.get("entity_profiles_count", 0)}</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f'<div class="mem-stat"><span class="mem-label">Relationships:</span> '
+            f'{mem_status.get("relationships_count", 0)}</div>',
+            unsafe_allow_html=True,
+        )
+        coherence = mem_status.get("coherence", 0)
+        st.progress(min(1.0, coherence), text=f"Coherence: {coherence:.0%}")
+
+        if mem_status.get("entity"):
+            st.markdown(
+                f'<div class="mem-stat"><span class="mem-label">Focus:</span> '
+                f'{mem_status["entity"]}</div>',
+                unsafe_allow_html=True,
+            )
+        if mem_status.get("last_intent"):
+            st.markdown(
+                f'<div class="mem-stat"><span class="mem-label">Last intent:</span> '
+                f'{mem_status["last_intent"]}</div>',
+                unsafe_allow_html=True,
+            )
+    else:
+        st.caption("No memory yet - ask a question to start.")
+
+    st.markdown("---")
+
     st.markdown("**Try asking:**")
-    example_qs = [
+    for q in [
         "What funding rounds were announced?",
         "Tell me about recent acquisitions",
         "Which investors are most active?",
         "What's happening in AI startups?",
         "Compare the top funded companies",
-    ]
-    for q in example_qs:
+    ]:
         if st.button(q, use_container_width=True):
             st.session_state.messages.append({"role": "user", "content": q})
             st.rerun()
 
     st.markdown("---")
-    st.markdown(
-        '<span style="font-size:0.75rem; color:#aaa;">PitchBook Observer Agent v2</span>',
-        unsafe_allow_html=True,
-    )
+    st.caption("PitchBook Observer Agent v2")
 
 
-# Display existing messages
+# ---------------------------------------------------------------------------
+# Chat history
+# ---------------------------------------------------------------------------
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"], unsafe_allow_html=True)
 
 
-# Chat input
+# ---------------------------------------------------------------------------
+# Chat input + response with inline visualization
+# ---------------------------------------------------------------------------
 if prompt := st.chat_input("Ask about deals, funding, acquisitions..."):
-    # Show user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Run agent and show response
     with st.chat_message("assistant"):
         with st.spinner("Analyzing..."):
             t0 = time.time()
             result = run_query(prompt)
             elapsed = time.time() - t0
 
-        # Format the answer
+        st.session_state.query_count += 1
+
         answer = result.get("answer", "I couldn't find relevant information.")
         conf = result.get("confidence_label", "medium")
         citations = result.get("citations", [])
         timings = result.get("timings", {})
         query_info = result.get("query_info", {})
         kpis = result.get("kpis", [])
+        mem_aug = query_info.get("memory_augmentation", {})
 
-        # Main answer
+        # Answer
         st.markdown(answer)
 
-        # Confidence badge
-        conf_html = f'<span class="conf-{conf}">Confidence: {conf.upper()}</span>'
-        st.markdown(conf_html, unsafe_allow_html=True)
+        # Memory augmentation indicator
+        if mem_aug.get("used"):
+            st.caption(f"Memory: active ({mem_aug.get('reason', '')})")
 
-        # KPIs (if any)
+        # KPI chips
         if kpis:
             chips = "".join(
-                f'<span class="kpi-chip">{k.get("entity", "")}: {k.get("metric_value", "")}</span>'
+                f'<span class="kpi-chip">{k.get("entity", "")}: '
+                f'{k.get("metric_value", "")}</span>'
                 for k in kpis[:8]
             )
             st.markdown(f'<div class="kpi-row">{chips}</div>', unsafe_allow_html=True)
 
-        # Citations in expander
+        # Inline visualization panel
+        if HAS_PLOTLY:
+            viz_col1, viz_col2, viz_col3 = st.columns(3)
+            with viz_col1:
+                render_confidence_gauge(conf)
+            with viz_col2:
+                render_timing_bars(timings)
+            with viz_col3:
+                render_source_breakdown(citations)
+
+        # Citations expander
         if citations:
             with st.expander(f"Sources ({len(citations)})"):
                 for i, cit in enumerate(citations[:5], 1):
@@ -394,11 +494,17 @@ if prompt := st.chat_input("Ask about deals, funding, acquisitions..."):
                         unsafe_allow_html=True,
                     )
 
-        # Timing footer
+        # Footer
         total_ms = timings.get("total_ms", elapsed * 1000)
-        st.caption(f"{total_ms:.0f}ms | {query_info.get('model', 'template')}")
+        model = query_info.get("model", "template")
+        results_n = query_info.get("results_after_rerank", 0)
+        st.caption(
+            f"{total_ms:.0f}ms | {model} | "
+            f"{results_n} sources reranked | "
+            f"query #{st.session_state.query_count}"
+        )
 
-        # Build HTML for storage
+        # Store for chat history
         stored_answer = answer
         if citations:
             stored_answer += f"\n\n*{len(citations)} sources cited*"
@@ -409,13 +515,12 @@ if prompt := st.chat_input("Ask about deals, funding, acquisitions..."):
             "content": stored_answer,
         })
 
-        # Save visualization data for dashboard
+        # Save visualization data
         try:
             responses_dir = Path(__file__).parent.parent / "data" / "responses"
             responses_dir.mkdir(parents=True, exist_ok=True)
             viz_data = {
-                "response": result,
-                "kpis": kpis,
+                "response": result, "kpis": kpis,
                 "visualizations": result.get("visualizations", []),
                 "timestamp": datetime.utcnow().isoformat(),
             }
