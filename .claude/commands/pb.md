@@ -15,7 +15,6 @@ The PitchBook Observer Agent answers questions about public deal activity — fu
 Use the Bash tool to run the agent:
 
 ```bash
-cd /path/to/PB
 python -m pipeline.agents.runtime_agent "$ARGUMENTS"
 ```
 

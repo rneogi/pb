@@ -33,7 +33,7 @@ class ClaudeClient:
         - Graceful error handling
     """
 
-    DEFAULT_MODEL = "claude-opus-4-5-20251101"
+    DEFAULT_MODEL = "claude-opus-4-6"
     DEFAULT_MAX_TOKENS = 1024
 
     # Default system prompt for PitchBook Observer

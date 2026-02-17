@@ -20,6 +20,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+# Load .env from project root before anything else
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent.parent.parent / ".env")
+except ImportError:
+    pass
+
 # Add app directory to path for imports
 APP_DIR = Path(__file__).parent.parent.parent / "app"
 if str(APP_DIR) not in sys.path:
@@ -396,7 +403,13 @@ class RuntimeAgent(AgentBase):
 # CLI entry point
 if __name__ == "__main__":
     import argparse
+    import io
     import json
+    import sys
+
+    # Force UTF-8 output so LLM responses with emoji/special chars don't crash on Windows
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
     parser = argparse.ArgumentParser(description="Runtime Agent")
     parser.add_argument("query", nargs="?", help="Query to process")
