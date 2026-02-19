@@ -1,140 +1,117 @@
 # PitchBook Observer
 
-Public-source RAG pipeline for tracking startup funding, investment, and M&A activity.
+Public deal intelligence agent. Monitors funding rounds, acquisitions, and investor activity from public sources (SEC EDGAR, PR Newswire, TechCrunch, GlobeNewswire) and answers natural language queries with cited sources and session memory.
 
-> Works fully offline -- no API key required for the demo.
-> Optionally bring your own Anthropic API key for LLM-enhanced answers.
-
-## What This Does
-
-PitchBook Observer crawls publicly accessible sources (SEC EDGAR, PR Newswire, GlobeNewswire, TechCrunch) on a weekly schedule, extracts and classifies content into deal signals, and provides a RAG-powered chat interface for querying the knowledge base with citations.
-
-## 60-Second Demo
+## Quick Start (SAs)
 
 ```bash
-# Windows
-runit.bat
+# 1. Clone
+git clone https://dev.azure.com/genlite-azure/genlite_saagents/_git/pb
+cd pb
 
-# Mac / Linux
-chmod +x runit.sh && ./runit.sh
+# 2. Setup (installs deps + prompts for your API key)
+setup.bat          # Windows
+bash setup.sh      # Mac / Linux
+
+# 3. Launch
+runit.bat          # Windows  → opens http://localhost:8501
+bash runit.sh      # Mac/Linux
 ```
 
-This generates 50 synthetic demo articles and starts an interactive chat. Try asking:
+Get your API key at **https://console.anthropic.com/** — you'll be prompted during setup.
 
-- "What funding rounds were announced?"
-- "Tell me about recent acquisitions"
-- "Which investors are most active?"
-- "Show me SEC filings from this week"
+---
 
-No API key needed. No internet required. Everything runs locally.
+## What It Does
 
-## Features
+Ask questions in plain English about public deal activity:
 
-- **7-stage ingest pipeline**: crawl -> clean -> delta -> evaluate -> schedule -> index -> digest
-- **Hybrid retrieval**: Vector (sentence-transformers) + keyword search with reranking
-- **5 specialized agents**: Runtime, Ingest, Compilation, Presentation, Memory
-- **Streamlit + Plotly dashboard**: Interactive KPI visualization
-- **Session memory**: SmartCard tracks context across queries
-- **105 demo questions** for testing and benchmarking
-- **Local embeddings** with TF-IDF fallback (no GPU needed)
-- **Optional Claude LLM** for enhanced natural language answers
+- *"What funding rounds were announced this week?"*
+- *"Which investors are most active in AI?"*
+- *"Tell me about recent acquisitions in fintech"*
+- *"Which of these startups is in drug discovery?"*
 
-## Two Modes
+The agent retrieves relevant articles from its indexed knowledge base, reranks results, augments with session memory, and generates a grounded answer with citations — powered by **Claude Opus 4.6**.
 
-### Local Mode (Default -- No API Key)
+---
 
-Template-based answers from retrieved context. Full retrieval, reranking, citations, and visualization. Works completely offline.
+## How It Works
 
-### LLM Mode (Bring Your Own Key)
+```
+/pipeline  (admin, weekly)          /pb [query]  (SA, anytime)
+├── IngestAgent                     ├── RuntimeAgent  ← PARGV retrieval loop
+│   └── Crawl → Clean → Evaluate   ├── MemoryAgent   ← session SmartCard
+└── CompilationAgent                └── PresentationAgent ← KPI + charts
+    └── Embed → Index
+```
 
-Natural language answers powered by Claude. Set `ANTHROPIC_API_KEY` in a `.env` file:
+**Data sources (public only):**
+
+| Source | Content |
+|--------|---------|
+| SEC EDGAR Form D | Real funding disclosures |
+| PR Newswire | Financial + tech press releases |
+| GlobeNewswire | Business + tech news |
+| TechCrunch | Startup and VC news |
+| Hacker News | Top tech stories |
+| a16z, Sequoia, YC | Investor portfolio pages |
+
+The index is pre-built and committed to this repo. SAs get working data on first clone. The admin refreshes it weekly by running `/pipeline` and pushing.
+
+---
+
+## Interfaces
+
+| Interface | How to launch | Best for |
+|-----------|--------------|---------|
+| **Web UI** | `runit.bat` / `bash runit.sh` | Everyone |
+| **CLI** | `run_chat.bat` | Developers |
+| **Claude Code** | `/pb [query]` | Developers with Claude Code |
+| **Cloud demo** | https://pbobserver.streamlit.app | External demos |
+
+---
+
+## Environment
+
+Your API key goes in `.env` (created automatically by `setup.bat`):
+
+```
+ANTHROPIC_API_KEY=sk-ant-...
+CLAUDE_MODEL=claude-opus-4-6
+```
+
+`.env` is gitignored — it never leaves your machine.
+
+---
+
+## Refreshing Data (Admin Only)
 
 ```bash
-cp .env.example .env
-# Edit .env and add your key
+/pipeline                          # crawl + compile
+git add indexes/
+git commit -m "Refresh index YYYY-WNN"
+git push azure main
 ```
 
-## Quick Reference
+SAs run `git pull` to get the updated index.
 
-| Command | Description |
-|---------|-------------|
-| `runit.bat` | Zero-config demo (Windows) |
-| `./runit.sh` | Zero-config demo (Mac/Linux) |
-| `run_chat.bat` | Interactive chat (auto-detects API key) |
-| `run_pipeline.bat` | Run full ingest pipeline |
-| `run_batch.bat` | Batch-run 105 demo questions with profiling |
-| `run_api.bat` | Start FastAPI server (port 8000) |
-
-## Pipeline Stages
-
-```
-Sources -> CRAWL -> CLEAN -> DELTA -> EVALUATE -> SCHEDULE -> INDEX -> DIGEST
-           fetch    extract   compare   classify    job queue   vector    weekly
-           HTML     text,     vs prior  deal_signal            + keyword  report
-                    chunk     week      noise                  indexes   with cites
-```
-
-## Data Sources (Public Only)
-
-| Source | Type | Content |
-|--------|------|---------|
-| SEC EDGAR | RSS/Atom | Form D filings, regulatory submissions |
-| PR Newswire | RSS | Press releases (financial, technology) |
-| GlobeNewswire | RSS | Business and technology press releases |
-| TechCrunch | RSS | Startup and venture capital news |
-| Hacker News | RSS | Technology community top stories |
-| VC Portfolios | HTTP | a16z, Sequoia, Y Combinator pages |
-
-All sources are publicly accessible. No logins, paywalls, or API keys required.
-
-## Documentation
-
-All docs live in the **agent hub**: [`pipeline/agents/`](pipeline/agents/)
-
-| Document | Contents |
-|----------|----------|
-| [pipeline/agents/README.md](pipeline/agents/README.md) | Agent hub entry point |
-| [pipeline/agents/SETUP.md](pipeline/agents/SETUP.md) | Installation and configuration guide |
-| [pipeline/agents/ARCHITECTURE.md](pipeline/agents/ARCHITECTURE.md) | System design, pipeline stages, data flow |
-| [pipeline/agents/AGENTS.md](pipeline/agents/AGENTS.md) | Agent hierarchy and event flow |
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Index status |
-| `POST` | `/chat` | Template-based query (no API key) |
-| `POST` | `/chat/v2` | LLM-enhanced query (optional API key) |
-| `GET` | `/agents/status` | Agent system status |
-| `POST` | `/agents/ingest` | Trigger manual ingest |
-| `POST` | `/visualize` | Launch KPI dashboard |
+---
 
 ## Configuration
 
-- `manifests/sources.yaml` -- Data sources (add your own watchlists)
-- `manifests/pipeline.yaml` -- Pipeline settings, agent config, embedding options
+- `manifests/sources.yaml` — add/remove crawl sources and company watchlists
+- `.env` — API key and model selection
+- `.claude/specs/` — agent specs and pipeline documentation
 
-## Technology Stack
+---
 
-Python 3.12+ | FastAPI | SQLite | sentence-transformers | Streamlit | Plotly | httpx | trafilatura
+## Tech Stack
 
-## Phase 2 (Planned)
-
-- Claim extraction (structured data from unstructured text)
-- Entity resolution (normalize company/investor names)
-- Record assembly (build deal records with confidence scores)
-- State machine (draft -> confirmed -> stale lifecycle)
-
-Database schema and module stubs are already in place.
+Python 3.12 · Streamlit · Plotly · sentence-transformers · Claude Opus 4.6 · httpx · trafilatura
 
 ## Constraints
 
-1. **Public sources only** -- No logins, paywalls, or bypassing protections
-2. **Rate limiting** -- Respects robots.txt and applies throttling
-3. **Audit trail** -- Stores raw + cleaned + metadata for every fetch
-4. **Citations required** -- Every claim links to a source URL
-5. **Epistemic humility** -- Acknowledges limitations in responses
-
-## License
-
-MIT License. Respects all source terms of service.
+- Public sources only — no logins, paywalls, or bypassing protections
+- Rate-limited crawling — respects robots.txt
+- Every answer includes source citations
+- Acknowledges data gaps and inconsistencies explicitly
