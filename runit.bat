@@ -35,7 +35,7 @@ pip install -q pyyaml httpx[http2] beautifulsoup4 lxml trafilatura fastapi uvico
 pip install -q sentence-transformers 2>nul
 pip install -q streamlit plotly pandas 2>nul
 
-echo    [3/4] Preparing knowledge base...
+echo    [3/4] Preparing directories...
 if not exist "data\raw" mkdir "data\raw"
 if not exist "data\clean" mkdir "data\clean"
 if not exist "data\meta" mkdir "data\meta"
@@ -47,12 +47,6 @@ if not exist "db" mkdir "db"
 if not exist "products" mkdir "products"
 if not exist "batch_results" mkdir "batch_results"
 if not exist "runs" mkdir "runs"
-python scripts\inject_demo_data.py
-if errorlevel 1 (
-    echo    ERROR: Knowledge base setup failed.
-    pause
-    exit /b 1
-)
 
 echo    [4/4] Launching agent...
 echo.
