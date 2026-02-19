@@ -1,0 +1,52 @@
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  azureSubscription: 'genlite-azure'          # Update with your service connection name
+  appName: 'pb-observer'                       # Update with your App Service name
+  containerRegistry: 'pbobserver.azurecr.io'  # Update with your ACR name (if using containers)
+  imageRepository: 'pb-observer'
+  dockerfilePath: 'Dockerfile'
+  tag: '$(Build.BuildId)'
+
+stages:
+  - stage: Build
+    displayName: Build and push Docker image
+    jobs:
+      - job: Build
+        displayName: Build
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: Docker@2
+            displayName: Build and push image to ACR
+            inputs:
+              command: buildAndPush
+              repository: $(imageRepository)
+              dockerfile: $(dockerfilePath)
+              containerRegistry: $(containerRegistry)
+              tags: |
+                $(tag)
+                latest
+
+  - stage: Deploy
+    displayName: Deploy to Azure App Service
+    dependsOn: Build
+    jobs:
+      - deployment: Deploy
+        displayName: Deploy
+        environment: production
+        pool:
+          vmImage: ubuntu-latest
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureWebAppContainer@1
+                  displayName: Deploy to App Service
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    appName: $(appName)
+                    containers: $(containerRegistry)/$(imageRepository):$(tag)
