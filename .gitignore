@@ -49,9 +49,9 @@ data/responses/
 !data/memory/.gitkeep
 !data/responses/.gitkeep
 
-# Vector indexes (generated)
-indexes/chroma/
-!indexes/chroma/.gitkeep
+# Vector indexes — committed so SAs get working data on clone
+# Admin runs /pipeline and pushes; SAs git pull to refresh
+# indexes/chroma/  ← intentionally NOT ignored
 
 # Database (generated)
 db/*.sqlite

@@ -4,7 +4,15 @@ Public deal intelligence agent. Monitors funding rounds, acquisitions, and inves
 
 ## Architecture
 
-Single agent (`/pb`) wrapping a multi-stage pipeline:
+```
+/pipeline                          /pb [query]
+├── /ingest                        ├── /runtime  ← PARGV loop
+│   └── IngestAgent                ├── /memory   ← SmartCard (auto)
+└── /compile                       └── /visualize ← KPI + charts (auto)
+    └── CompilationAgent
+```
+
+Full agent hierarchy:
 
 ```
 User Query
@@ -16,14 +24,22 @@ RuntimeAgent          ← PARGV loop: Parse → Abstract → Retrieve → Genera
     └── PresentationAgent ← KPI extraction, visualization data
 ```
 
+## Commands
+
+| Command | File | Purpose |
+|---------|------|---------|
+| `/pb [query]` | `.claude/commands/pb.md` | Query the agent |
+| `/pipeline` | `.claude/commands/pipeline.md` | Run ingest + compile (admin) |
+| `/ingest` | `.claude/commands/ingest.md` | Crawl live sources only (admin) |
+
 ## Entry Points
 
 | Interface     | Command / File                  | Audience          |
 |---------------|---------------------------------|-------------------|
-| Claude Code   | `/pb [query]`                   | Developers        |
-| Web UI        | `streamlit run app/streamlit_chat.py` | All users    |
+| Claude Code   | `/pb [query]`                   | Developers / SAs  |
+| Web UI        | `runit.bat` / `bash runit.sh`   | All users         |
 | CLI           | `run_chat.bat`                  | Developers        |
-| Cloud demo    | https://pbobserver.streamlit.app | Teammates        |
+| Cloud demo    | https://pbobserver.streamlit.app | External demo    |
 
 ## Key Files
 
@@ -35,8 +51,8 @@ RuntimeAgent          ← PARGV loop: Parse → Abstract → Retrieve → Genera
 | `pipeline/agents/presentation_agent.py` | KPI + visualization |
 | `app/streamlit_chat.py` | Web chat UI |
 | `app/chat_interface.py` | CLI chat loop |
-| `scripts/inject_demo_data.py` | 50-article demo dataset |
 | `manifests/sources.yaml` | Crawl sources config |
+| `indexes/chroma/` | Vector + keyword index (committed — refreshed by admin) |
 
 ## Specs
 
@@ -45,23 +61,44 @@ RuntimeAgent          ← PARGV loop: Parse → Abstract → Retrieve → Genera
 - [Ingest Agent](.claude/specs/ingest.md)
 - [Presentation Agent](.claude/specs/presentation.md)
 - [Pipeline](.claude/specs/pipeline.md)
+- [Compilation Agent](.claude/specs/compilation.md)
 
-## Quick Start
+## SA Onboarding (First Time Setup)
 
 ```bash
-# Web UI (recommended)
-runit.bat          # Windows
-bash runit.sh      # Mac/Linux
+# 1. Clone the internal repo
+git clone https://dev.azure.com/genlite-azure/genlite_saagents/_git/pb
 
-# CLI
-run_chat.bat
+# 2. Run setup (installs deps, prompts for your API key)
+setup.bat          # Windows
+bash setup.sh      # Mac/Linux
 
-# Claude Code
+# 3. Launch
+runit.bat          # Web UI (recommended)
+run_chat.bat       # CLI
+
+# 4. In Claude Code
 /pb what funding rounds were announced this week?
+```
+
+## Admin Data Refresh
+
+```bash
+# Run weekly to pull fresh data, then push so SAs get it on git pull
+/pipeline
+git add indexes/
+git commit -m "Refresh index YYYY-WNN"
+git push
 ```
 
 ## Environment
 
-- `ANTHROPIC_API_KEY` — required for Claude Opus; optional for template mode
+- `ANTHROPIC_API_KEY` — required for LLM synthesis; optional for template mode
+- `CLAUDE_MODEL` — defaults to `claude-opus-4-6`
 - Python 3.12+
 - See `.env.example` for full config
+- `.env` is gitignored — each SA sets their own key via `setup.bat`
+
+## Repository
+
+Internal: https://dev.azure.com/genlite-azure/genlite_saagents/_git/pb

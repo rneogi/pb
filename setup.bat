@@ -1,60 +1,80 @@
 @echo off
-REM ============================================================
-REM  Public PitchBook Observer - Setup / Install Dependencies
-REM ============================================================
+setlocal
 
 echo.
 echo  ======================================================
-echo   Public PitchBook Observer - Setup
+echo   PitchBook Observer -- SA Setup
 echo  ======================================================
 echo.
 
-REM Check if Python is available
+:: Check Python
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo ERROR: Python is not installed or not in PATH
-    echo Please install Python 3.12+ and try again.
+    echo  [ERROR] Python not found. Install Python 3.12+ from https://python.org
     pause
     exit /b 1
 )
+for /f "tokens=2 delims= " %%v in ('python --version 2^>^&1') do set PYVER=%%v
+echo  [OK] Python %PYVER%
 
-echo Python found:
-python --version
+:: Install dependencies
 echo.
-
-REM Change to script directory
-cd /d "%~dp0"
-
-echo Installing dependencies...
-echo.
-
-pip install pyyaml httpx beautifulsoup4 lxml fastapi uvicorn pydantic numpy scikit-learn
-
-echo.
-echo Checking for optional dependencies...
-
-REM Try to install sentence-transformers (may fail without torch)
-echo.
-echo Installing sentence-transformers (for embeddings)...
-pip install sentence-transformers 2>nul
+echo  [1/3] Installing dependencies...
+pip install -r requirements.txt --quiet
 if errorlevel 1 (
-    echo WARNING: sentence-transformers install failed - will use TF-IDF fallback
+    echo  [ERROR] pip install failed. Check your internet connection.
+    pause
+    exit /b 1
+)
+echo  [OK] Dependencies installed
+
+:: API key setup
+echo.
+echo  [2/3] API Key Setup
+if exist .env (
+    findstr /i "ANTHROPIC_API_KEY=sk-ant-" .env >nul 2>&1
+    if not errorlevel 1 (
+        echo  [OK] API key already configured in .env
+        goto :verify
+    )
 )
 
-REM Try trafilatura
 echo.
-echo Installing trafilatura (for content extraction)...
-pip install trafilatura 2>nul
+echo  Get your key at: https://console.anthropic.com/
+echo.
+set /p SA_KEY="  Enter your Anthropic API key (sk-ant-...): "
+if "%SA_KEY%"=="" (
+    echo  [WARN] No key entered. Running in template mode ^(no LLM synthesis^).
+    goto :verify
+)
+
+(
+echo # PitchBook Observer - Local Environment
+echo # This file is gitignored and will NOT be committed.
+echo.
+echo ANTHROPIC_API_KEY=%SA_KEY%
+echo CLAUDE_MODEL=claude-opus-4-6
+) > .env
+echo  [OK] API key saved to .env
+
+:verify
+echo.
+echo  [3/3] Verifying setup...
+python -c "from pipeline.agents.runtime_agent import RuntimeAgent; print('  [OK] Agent imports OK')" 2>nul
+if errorlevel 1 echo  [WARN] Import check failed - re-run setup or check Python version
+
+python -c "import pathlib; idx=pathlib.Path('indexes/chroma'); files=[f for f in idx.glob('*') if f.is_file()] if idx.exists() else []; print(f'  [OK] Index ready: {len(files)} files')" 2>nul
 
 echo.
-echo ======================================================
-echo   Setup Complete!
-echo ======================================================
+echo  ======================================================
+echo   Setup complete! How to use:
 echo.
-echo Next steps:
-echo   1. Run 'run_pipeline.bat' to crawl and index data
-echo   2. Run 'run_chat.bat' for interactive chat
-echo   3. Run 'run_batch.bat' to test with demo questions
+echo   Web UI ^(recommended^):   runit.bat
+echo   CLI:                     run_chat.bat
+echo   Claude Code:             /pb what funding rounds were announced?
 echo.
-
+echo   To refresh data ^(admin only^):  /pipeline
+echo  ======================================================
+echo.
 pause
+endlocal
