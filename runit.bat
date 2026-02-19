@@ -26,12 +26,16 @@ REM ---- Agent boot sequence ----
 echo  Agent is initializing...
 echo.
 
-echo    [1/3] Loading agent modules...
+echo    [1/4] Pulling latest data from repo...
+git pull --quiet
+echo    [OK] Index up to date
+
+echo    [2/4] Loading agent modules...
 pip install -q pyyaml httpx[http2] beautifulsoup4 lxml trafilatura fastapi uvicorn pydantic numpy scikit-learn python-dotenv anthropic 2>nul
 pip install -q sentence-transformers 2>nul
 pip install -q streamlit plotly pandas 2>nul
 
-echo    [2/3] Preparing knowledge base...
+echo    [3/4] Preparing knowledge base...
 if not exist "data\raw" mkdir "data\raw"
 if not exist "data\clean" mkdir "data\clean"
 if not exist "data\meta" mkdir "data\meta"
@@ -50,7 +54,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo    [3/3] Launching agent...
+echo    [4/4] Launching agent...
 echo.
 echo  ======================================================
 echo   PitchBook Observer Agent is starting!
