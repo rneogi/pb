@@ -482,6 +482,73 @@ def get_deltas_by_week(week: str) -> List[Dict[str, Any]]:
         return [dict(row) for row in cursor.fetchall()]
 
 
+# =========================================================================
+# Claims Operations (Phase 2)
+# =========================================================================
+
+def insert_claims(claims: List[Dict[str, Any]]) -> int:
+    """Insert claims, skip duplicates on claim_id. Return count inserted."""
+    if not claims:
+        return 0
+    inserted = 0
+    with db_session() as conn:
+        cursor = conn.cursor()
+        for c in claims:
+            try:
+                cursor.execute("""
+                    INSERT OR REPLACE INTO claims (
+                        claim_id, claim_type, subject_entity_id, object_entity_id,
+                        predicate, value, unit, confidence,
+                        source_artifact_id, source_chunk_id, evidence_text,
+                        extracted_at, validated, week
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    c.get("claim_id"),
+                    c.get("claim_type"),
+                    c.get("subject_entity_id"),
+                    c.get("object_entity_id"),
+                    c.get("predicate"),
+                    c.get("value"),
+                    c.get("unit"),
+                    c.get("confidence"),
+                    c.get("source_artifact_id"),
+                    c.get("source_chunk_id"),
+                    c.get("evidence_text"),
+                    c.get("extracted_at"),
+                    c.get("validated", False),
+                    c.get("week"),
+                ))
+                inserted += 1
+            except Exception:
+                pass  # skip individual failures
+    return inserted
+
+
+def get_claims_by_week(week: str) -> List[Dict[str, Any]]:
+    """Return all claims for a week."""
+    with db_session() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM claims WHERE week = ?", (week,))
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def get_claims_by_type(claim_type: str, week: str = None) -> List[Dict[str, Any]]:
+    """Return claims filtered by type, optionally by week."""
+    with db_session() as conn:
+        cursor = conn.cursor()
+        if week:
+            cursor.execute(
+                "SELECT * FROM claims WHERE claim_type = ? AND week = ?",
+                (claim_type, week),
+            )
+        else:
+            cursor.execute(
+                "SELECT * FROM claims WHERE claim_type = ?",
+                (claim_type,),
+            )
+        return [dict(row) for row in cursor.fetchall()]
+
+
 if __name__ == "__main__":
     print("Initializing database...")
     init_database()

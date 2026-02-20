@@ -32,6 +32,8 @@ After completion, summarize:
 - Articles indexed into the vector store
 - Accenture relationships extracted (count by type)
 - CSV saved to `data/private/relationships.csv`
+- Claims extracted (count by type: funding_round, acquisition, valuation)
+- Claims stored in SQLite `claims` table
 - Week label processed (e.g. 2026-W07)
 - Any sources that failed (404, timeout, etc.)
 

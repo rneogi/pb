@@ -113,6 +113,19 @@ class CompilationAgent(AgentBase):
             except Exception as rel_err:
                 self.logger.warning(f"Relationship extraction failed: {rel_err}")
 
+            # Run claims extraction (Phase 2) after relationships
+            try:
+                from ..phase2_stubs import extract_claims
+                claims_result = extract_claims.run_extract_claims(
+                    week, pipeline_config=self.config
+                )
+                self.logger.info(
+                    f"Extracted {claims_result.get('claims_extracted', 0)} claims "
+                    f"({claims_result.get('claims_after_dedup', 0)} after dedup)"
+                )
+            except Exception as claims_err:
+                self.logger.warning(f"Claims extraction failed: {claims_err}")
+
             status = "success"
             error = None
 
