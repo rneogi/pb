@@ -37,7 +37,7 @@ sources:
     rate_limit: 2.0
     entries:
       - name: "PR Newswire - Business Technology"
-        url: "https://www.prnewswire.com/rss/technology-latest-news.rss"
+        url: "https://www.prnewswire.com/rss/business-technology-latest-news/business-technology-latest-news-list.rss"
         format: rss
         description: "Technology press releases"
 
@@ -97,10 +97,9 @@ sources:
         description: "Stripe company blog"
 
       - name: "OpenAI Blog"
-        url: "https://openai.com/blog"
-        format: html
-        fetch_mode: playwright  # Needs JS rendering
-        description: "OpenAI company blog"
+        url: "https://openai.com/blog/rss.xml"
+        format: rss
+        description: "OpenAI company blog and announcements"
 
       # Add your watched companies here:
       # - name: "Company Name Press"
