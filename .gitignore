@@ -53,6 +53,10 @@ data/responses/
 # Admin runs /pipeline and pushes; SAs git pull to refresh
 # indexes/chroma/  ← intentionally NOT ignored
 
+# Relationship CSV — committed alongside indexes
+!data/private/
+!data/private/relationships.csv
+
 # Database (generated)
 db/*.sqlite
 db/*.db

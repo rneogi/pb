@@ -19,7 +19,7 @@ from typing import Optional, List
 
 from .config import get_current_week, ensure_week_dirs, load_pipeline_config
 from .database import init_database
-from . import crawl, clean, delta, evaluate, schedule, index, pargv_batch
+from . import crawl, clean, delta, evaluate, schedule, index, extract_relationships, pargv_batch
 from .phase2_stubs import extract_claims, entity_resolution, assemble_records
 
 
@@ -30,6 +30,7 @@ STAGES = [
     "evaluate",
     "schedule",
     "index",
+    "extract_relationships",
     "pargv_batch"
 ]
 
@@ -59,6 +60,8 @@ def run_stage(stage: str, week: str, since_week: Optional[str] = None, config=No
         return schedule.run_schedule(week, pipeline_config=config)
     elif stage == "index":
         return index.run_index(week, pipeline_config=config)
+    elif stage == "extract_relationships":
+        return extract_relationships.run_extract_relationships(week, pipeline_config=config)
     elif stage == "pargv_batch":
         return pargv_batch.run_pargv_batch(week, pipeline_config=config)
     # Phase 2 stubs

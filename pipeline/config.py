@@ -87,6 +87,10 @@ class PipelineConfig:
         return self.raw.get("index", {})
 
     @property
+    def extract_relationships(self) -> Dict[str, Any]:
+        return self.raw.get("extract_relationships", {})
+
+    @property
     def pargv_batch(self) -> Dict[str, Any]:
         return self.raw.get("pargv_batch", {})
 

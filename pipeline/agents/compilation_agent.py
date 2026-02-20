@@ -101,6 +101,18 @@ class CompilationAgent(AgentBase):
                 full_reindex=full_reindex
             )
 
+            # Run relationship extraction after indexing
+            try:
+                from .. import extract_relationships
+                rel_result = extract_relationships.run_extract_relationships(
+                    week, pipeline_config=self.config
+                )
+                self.logger.info(
+                    f"Extracted {rel_result.get('new_relationships', 0)} relationships"
+                )
+            except Exception as rel_err:
+                self.logger.warning(f"Relationship extraction failed: {rel_err}")
+
             status = "success"
             error = None
 

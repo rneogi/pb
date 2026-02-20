@@ -143,7 +143,34 @@ sources:
       #   description: "Portfolio page"
 
   # =========================================================================
-  # F) Telemetry - Careers/ATS Pages (Optional, watchlist driven)
+  # F) Accenture Ecosystem (Partnerships, Ventures, Newsroom)
+  # =========================================================================
+  accenture_watchlist:
+    enabled: true
+    source_kind: accenture_ecosystem
+    fetch_mode: playwright
+    rate_limit: 5.0
+    entries:
+      - name: "Accenture Newsroom"
+        url: "https://newsroom.accenture.com/"
+        format: html
+        fetch_mode: playwright
+        description: "Accenture press releases (partnerships, alliances, client wins)"
+
+      - name: "Accenture Innovation"
+        url: "https://www.accenture.com/us-en/about/accenture-innovation"
+        format: html
+        fetch_mode: playwright
+        description: "Accenture innovation programs and investment activity"
+
+      - name: "Accenture Ecosystem Partners"
+        url: "https://www.accenture.com/us-en/services/ecosystem-partners"
+        format: html
+        fetch_mode: playwright
+        description: "Accenture technology alliances and ecosystem partners (200+ partners)"
+
+  # =========================================================================
+  # G) Telemetry - Careers/ATS Pages (Optional, watchlist driven)
   # =========================================================================
   telemetry_watchlist:
     enabled: false  # Disabled by default

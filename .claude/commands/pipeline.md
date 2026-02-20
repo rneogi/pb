@@ -30,6 +30,8 @@ After completion, summarize:
 - Sources crawled and article counts per source
 - Deal signals found vs noise filtered
 - Articles indexed into the vector store
+- Accenture relationships extracted (count by type)
+- CSV saved to `data/private/relationships.csv`
 - Week label processed (e.g. 2026-W07)
 - Any sources that failed (404, timeout, etc.)
 

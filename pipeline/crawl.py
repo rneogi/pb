@@ -121,7 +121,7 @@ async def fetch_playwright(
 
     pw_config = config.get("playwright", {})
     timeout = pw_config.get("timeout", 60000)
-    wait_until = pw_config.get("wait_until", "networkidle")
+    wait_until = pw_config.get("wait_until", "domcontentloaded")
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=pw_config.get("headless", True))
@@ -129,6 +129,8 @@ async def fetch_playwright(
 
         try:
             response = await page.goto(url, timeout=timeout, wait_until=wait_until)
+            # Allow extra time for JS to render content
+            await page.wait_for_timeout(3000)
             content = await page.content()
             status = response.status if response else 200
             await browser.close()

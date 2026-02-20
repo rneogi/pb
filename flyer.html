@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PitchBook Observer — One-Pager</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', Arial, sans-serif;
+    background: #fff;
+    color: #1a1a2e;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 18mm 20mm 14mm 20mm;
+    font-size: 10.5pt;
+    line-height: 1.5;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    border-bottom: 3px solid #4f46e5;
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+  }
+  .brand h1 {
+    font-size: 22pt;
+    font-weight: 800;
+    color: #4f46e5;
+    letter-spacing: -0.5px;
+  }
+  .brand h1 span { color: #06b6d4; }
+  .brand p {
+    font-size: 9pt;
+    color: #6b7280;
+    margin-top: 2px;
+    font-weight: 400;
+  }
+  .badge {
+    background: #4f46e5;
+    color: #fff;
+    font-size: 8pt;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-top: 6px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* ── Vision ── */
+  .vision {
+    background: linear-gradient(135deg, #eef2ff 0%, #f0fdfa 100%);
+    border-left: 4px solid #4f46e5;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+  }
+  .vision p {
+    font-size: 11pt;
+    font-weight: 600;
+    color: #1e1b4b;
+    line-height: 1.6;
+  }
+  .vision small {
+    display: block;
+    margin-top: 5px;
+    font-size: 9pt;
+    color: #6b7280;
+    font-weight: 400;
+  }
+
+  /* ── Section titles ── */
+  h2 {
+    font-size: 10pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #4f46e5;
+    margin-bottom: 8px;
+    margin-top: 14px;
+  }
+
+  /* ── Two-column layout ── */
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px; }
+
+  /* ── Access cards ── */
+  .card {
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: #fafafa;
+  }
+  .card .card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+  .card .icon {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .icon-local  { background: #ede9fe; }
+  .icon-cloud  { background: #cffafe; }
+  .card h3 { font-size: 10.5pt; font-weight: 700; color: #1a1a2e; }
+  .card .sub { font-size: 8.5pt; color: #6b7280; }
+  .card ol, .card ul { padding-left: 16px; font-size: 9pt; color: #374151; }
+  .card li { margin-bottom: 3px; }
+  .card .url {
+    display: inline-block;
+    margin-top: 7px;
+    background: #4f46e5;
+    color: #fff;
+    font-size: 8.5pt;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 4px;
+    text-decoration: none;
+  }
+
+  /* ── Sources strip ── */
+  .sources {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .src-chip {
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 8pt;
+    font-weight: 600;
+    color: #374151;
+    padding: 3px 9px;
+  }
+
+  /* ── Limitations ── */
+  .limit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .limit-item {
+    display: flex; gap: 8px; align-items: flex-start;
+    background: #fffbeb; border: 1px solid #fde68a;
+    border-radius: 6px; padding: 8px 10px;
+    font-size: 9pt; color: #374151;
+  }
+  .limit-item .dot { color: #d97706; font-size: 12pt; margin-top: -1px; flex-shrink: 0; }
+  .limit-item strong { display: block; font-weight: 600; color: #92400e; font-size: 8.5pt; }
+
+  /* ── API Key ── */
+  .apikey {
+    background: #f0fdf4;
+    border: 1.5px solid #86efac;
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .apikey .key-icon { font-size: 22pt; }
+  .apikey h3 { font-size: 10pt; font-weight: 700; color: #14532d; margin-bottom: 3px; }
+  .apikey ol { padding-left: 16px; font-size: 9pt; color: #374151; }
+  .apikey li { margin-bottom: 2px; }
+  .apikey a { color: #4f46e5; font-weight: 600; }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 8pt;
+    color: #9ca3af;
+  }
+  footer strong { color: #6b7280; }
+
+  @media print {
+    body { padding: 12mm 16mm; }
+    a { text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="brand">
+    <h1>PitchBook <span>Observer</span></h1>
+    <p>Public Deal Intelligence Agent &nbsp;·&nbsp; Powered by Claude Opus 4.6</p>
+  </div>
+  <div class="badge">Internal Preview &nbsp;·&nbsp; Feb 2026</div>
+</header>
+
+<!-- ── VISION ── -->
+<h2>Vision</h2>
+<div class="vision">
+  <p>Give every Solutions Architect instant, cited answers about funding rounds, acquisitions, and investor activity — without digging through news feeds or PitchBook manually.</p>
+  <small>Ask in plain English. Get grounded answers with source links in seconds. Session memory retains context across follow-up questions.</small>
+</div>
+
+<!-- ── DATA SOURCES ── -->
+<h2>Live Data Sources</h2>
+<div class="sources">
+  <span class="src-chip">SEC EDGAR Form D</span>
+  <span class="src-chip">PR Newswire</span>
+  <span class="src-chip">GlobeNewswire</span>
+  <span class="src-chip">TechCrunch</span>
+  <span class="src-chip">Hacker News</span>
+  <span class="src-chip">a16z Portfolio</span>
+  <span class="src-chip">Sequoia Companies</span>
+  <span class="src-chip">Y Combinator</span>
+  <span class="src-chip" style="background:#ede9fe;border-color:#c4b5fd;">Accenture Newsroom</span>
+  <span class="src-chip" style="background:#ede9fe;border-color:#c4b5fd;">Accenture Ecosystem Partners</span>
+</div>
+
+<!-- ── ACCENTURE INTELLIGENCE ── -->
+<h2>Accenture Relationship Intelligence</h2>
+<div style="background:linear-gradient(135deg,#ede9fe 0%,#faf5ff 100%);border:1.5px solid #c4b5fd;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:9pt;color:#374151;">
+  <strong style="color:#4f46e5;">Auto-generated from public sources — updated with every /pipeline run.</strong><br>
+  The pipeline scans 6,000+ indexed chunks for Accenture co-mentions, extracting partnerships, investments, and client relationships into a structured CSV.
+  <span style="display:inline-block;margin-top:5px;font-size:8.5pt;color:#6b7280;">Example relationships found this week: <strong>Profitmind</strong> (investment + partnership), <strong>Palantir Technologies</strong> (co-selected by Sovereign AI), <strong>NTT DOCOMO GLOBAL</strong> (Universal Wallet Infrastructure partnership), <strong>ScottishPower Renewables</strong> (BOSLAN client win).</span>
+</div>
+
+<!-- ── WAYS TO USE ── -->
+<h2>Ways to Use It</h2>
+<div class="cols">
+
+  <!-- LOCAL -->
+  <div class="card">
+    <div class="card-head">
+      <div class="icon icon-local">💻</div>
+      <div>
+        <h3>Local (runit.bat)</h3>
+        <div class="sub">Best for SAs on Windows</div>
+      </div>
+    </div>
+    <ol>
+      <li>Clone: <strong>https://dev.azure.com/genlite-azure/<br>genlite_saagents/_git/pb</strong></li>
+      <li>Run <strong>setup.bat</strong> — enter your API key when prompted</li>
+      <li>Run <strong>runit.bat</strong> — browser opens automatically</li>
+      <li>Start asking questions</li>
+    </ol>
+    <small style="font-size:8pt;color:#6b7280;margin-top:6px;display:block;">
+      Pulls the latest data index on every launch. No crawling required.
+    </small>
+  </div>
+
+  <!-- CLOUD -->
+  <div class="card">
+    <div class="card-head">
+      <div class="icon icon-cloud">☁️</div>
+      <div>
+        <h3>Streamlit Cloud</h3>
+        <div class="sub">Browser-only, no install needed</div>
+      </div>
+    </div>
+    <ol>
+      <li>Request access from your team lead</li>
+      <li>Open the link below — sign in with your email</li>
+      <li>Enter the shared API key (provided with access)</li>
+      <li>Start asking questions</li>
+    </ol>
+    <a class="url" href="https://pbobserver.streamlit.app">pbobserver.streamlit.app</a>
+  </div>
+
+</div>
+
+<!-- ── LIMITATIONS ── -->
+<h2>Current Limitations &amp; Roadmap</h2>
+<div class="limit-grid">
+  <div class="limit-item">
+    <span class="dot">⚠</span>
+    <div>
+      <strong>Public sources only</strong>
+      SEC filings, press releases, and tech news. No PitchBook, Crunchbase, or paid data feeds yet.
+    </div>
+  </div>
+  <div class="limit-item">
+    <span class="dot">⚠</span>
+    <div>
+      <strong>Weekly refresh cadence</strong>
+      Index is updated weekly by the admin. Real-time alerts are not yet supported.
+    </div>
+  </div>
+  <div class="limit-item">
+    <span class="dot">⚠</span>
+    <div>
+      <strong>Session memory only</strong>
+      Conversation context resets when you close the browser. Persistent memory across sessions is on the roadmap.
+    </div>
+  </div>
+  <div class="limit-item">
+    <span class="dot">✓</span>
+    <div>
+      <strong style="color:#166534;">Accenture relationships (new!)</strong>
+      Partnerships, investments, and client wins auto-extracted from Accenture Newsroom and ecosystem data. CRM integration planned.
+    </div>
+  </div>
+</div>
+
+<!-- ── API KEY ── -->
+<h2>Get Your Claude API Key</h2>
+<div class="apikey">
+  <div class="key-icon">🔑</div>
+  <div>
+    <h3>Required for local use &nbsp;·&nbsp; Not needed for Streamlit Cloud access</h3>
+    <ol>
+      <li>Go to <a href="https://console.anthropic.com">console.anthropic.com</a> and sign in with your work email</li>
+      <li>Navigate to <strong>API Keys</strong> → click <strong>Create Key</strong></li>
+      <li>Copy the key (starts with <code>sk-ant-</code>) — you will not see it again</li>
+      <li>Paste it when <strong>setup.bat</strong> prompts you, or enter it in the Streamlit sidebar</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div><strong>PitchBook Observer</strong> &nbsp;·&nbsp; Internal Preview &nbsp;·&nbsp; Accenture GenLite</div>
+  <div>Questions? Contact your SA lead &nbsp;·&nbsp; Data: public sources only &nbsp;·&nbsp; Feb 2026</div>
+</footer>
+
+</body>
+</html>

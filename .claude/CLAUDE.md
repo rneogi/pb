@@ -51,8 +51,10 @@ RuntimeAgent          ← PARGV loop: Parse → Abstract → Retrieve → Genera
 | `pipeline/agents/presentation_agent.py` | KPI + visualization |
 | `app/streamlit_chat.py` | Web chat UI |
 | `app/chat_interface.py` | CLI chat loop |
+| `pipeline/extract_relationships.py` | Accenture relationship extractor |
 | `manifests/sources.yaml` | Crawl sources config |
 | `indexes/chroma/` | Vector + keyword index (committed — refreshed by admin) |
+| `data/private/relationships.csv` | Auto-generated relationship CSV (committed) |
 
 ## Specs
 
@@ -86,7 +88,7 @@ run_chat.bat       # CLI
 ```bash
 # Run weekly to pull fresh data, then push so SAs get it on git pull
 /pipeline
-git add indexes/
+git add indexes/ data/private/relationships.csv
 git commit -m "Refresh index YYYY-WNN"
 git push
 ```

@@ -29,7 +29,7 @@ crawl:
   playwright:
     headless: true
     timeout: 60000  # ms
-    wait_until: "networkidle"
+    wait_until: "domcontentloaded"
 
 # Clean stage settings
 clean:
@@ -161,6 +161,29 @@ index:
   retrieval:
     default_top_k: 10
     max_top_k: 50
+
+# Extract relationships settings
+extract_relationships:
+  enabled: true
+  primary_entity: "Accenture"
+  max_snippet_length: 200
+  min_confidence: 0.4
+  enterprise_watchlist:
+    - "JPMorgan"
+    - "Goldman Sachs"
+    - "Morgan Stanley"
+    - "Bank of America"
+    - "Microsoft"
+    - "Google"
+    - "Amazon"
+    - "Salesforce"
+    - "SAP"
+    - "Oracle"
+    - "IBM"
+    - "Deloitte"
+    - "McKinsey"
+    - "Accenture"
+  output_path: "data/private/relationships.csv"
 
 # PARGV batch settings
 pargv_batch:
