@@ -32,14 +32,15 @@ echo    [OK] Index up to date
 
 echo    [2/4] Checking agent modules...
 python -c "import streamlit, anthropic, sentence_transformers" 2>nul
-if errorlevel 1 (
-    echo         Installing dependencies (first run only, may take a minute)...
-    pip install -q pyyaml httpx[http2] beautifulsoup4 lxml trafilatura fastapi uvicorn pydantic numpy scikit-learn python-dotenv anthropic 2>nul
-    pip install -q sentence-transformers 2>nul
-    pip install -q streamlit plotly pandas 2>nul
-) else (
-    echo    [OK] All modules loaded
-)
+if not errorlevel 1 goto :modules_ok
+echo         Installing dependencies (first run only, may take a minute)...
+pip install -q pyyaml "httpx[http2]" beautifulsoup4 lxml trafilatura fastapi uvicorn pydantic numpy scikit-learn python-dotenv anthropic 2>nul
+pip install -q sentence-transformers 2>nul
+pip install -q streamlit plotly pandas 2>nul
+goto :modules_done
+:modules_ok
+echo    [OK] All modules loaded
+:modules_done
 
 echo    [3/4] Preparing directories...
 if not exist "data\raw" mkdir "data\raw"
