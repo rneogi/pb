@@ -178,3 +178,94 @@ class TestExtractTextBasic:
 
         assert "Main content" in text
         # Nav and footer might be removed depending on implementation
+
+
+# =========================================================================
+# Edge / Error Cases
+# =========================================================================
+
+class TestExtractTextEdgeCases:
+    """Error and boundary tests for text extraction."""
+
+    def test_malformed_html(self):
+        """Unclosed tags and broken structure should not crash."""
+        html = "<html><body><p>Open paragraph<div>Nested wrong</p></div>"
+        text, title = extract_text_basic(html)
+        assert isinstance(text, str)
+
+    def test_empty_body(self):
+        """Empty body tag returns empty-ish text."""
+        html = "<html><body></body></html>"
+        text, title = extract_text_basic(html)
+        assert text == "" or text.strip() == ""
+
+    def test_only_script_tags(self):
+        """Page with only scripts should yield no visible text."""
+        html = "<html><body><script>var x=1;</script><script>console.log(x)</script></body></html>"
+        text, title = extract_text_basic(html)
+        assert "var x" not in text
+        assert "console" not in text
+
+    def test_unicode_content(self):
+        """Non-ASCII characters are preserved."""
+        html = "<html><body><p>Finanzierung: 50\u00a0Mio.\u00a0\u20ac f\u00fcr Startup</p></body></html>"
+        text, title = extract_text_basic(html)
+        assert "\u20ac" in text  # euro sign preserved
+        assert "Startup" in text
+
+    def test_missing_title_returns_none(self):
+        """HTML without <title> returns None for title."""
+        html = "<html><body><p>No title here</p></body></html>"
+        text, title = extract_text_basic(html)
+        assert title is None
+
+    def test_entities_decoded(self):
+        """HTML entities are decoded to text."""
+        html = "<html><body><p>AT&amp;T &amp; Verizon</p></body></html>"
+        text, title = extract_text_basic(html)
+        assert "AT&T" in text or "AT&amp;T" in text  # depends on BS4 behavior
+
+
+class TestChunkTextEdgeCases:
+    """Boundary tests for chunking."""
+
+    def test_whitespace_only_text(self):
+        """Whitespace-only input returns empty list."""
+        chunks = chunk_text("   \n\n\t  ")
+        assert chunks == []
+
+    def test_exact_chunk_size_text(self):
+        """Text exactly at chunk boundary should produce one chunk."""
+        # 200 chars = 50 tokens at 4 chars/token
+        text = "A" * 200
+        chunks = chunk_text(text, chunk_size_tokens=50, chunk_overlap_tokens=10, chars_per_token=4)
+        assert len(chunks) >= 1
+        assert chunks[0]["text"] == text
+
+    def test_very_long_text(self):
+        """Very long text produces many chunks without crashing."""
+        text = "word " * 10_000  # ~50k chars
+        chunks = chunk_text(text, chunk_size_tokens=100, chunk_overlap_tokens=20, chars_per_token=4)
+        assert len(chunks) > 50
+        # All chunks have valid metadata
+        for c in chunks:
+            assert c["start_char"] >= 0
+            assert c["end_char"] > c["start_char"]
+
+    def test_no_overlap_zero(self):
+        """Zero overlap should still produce valid chunks."""
+        text = "Hello world. " * 100
+        chunks = chunk_text(text, chunk_size_tokens=20, chunk_overlap_tokens=0, chars_per_token=4)
+        assert len(chunks) >= 1
+
+
+class TestEstimateTokensEdgeCases:
+    """Boundary tests for token estimation."""
+
+    def test_single_char(self):
+        """Single character should estimate to 0 tokens (1 // 4 = 0)."""
+        assert estimate_tokens("A", chars_per_token=4) == 0
+
+    def test_exactly_one_token(self):
+        """4 chars should estimate to exactly 1 token."""
+        assert estimate_tokens("ABCD", chars_per_token=4) == 1

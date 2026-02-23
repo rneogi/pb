@@ -206,3 +206,124 @@ class TestEvaluateArtifact:
 
         # More keyword matches should result in higher confidence
         assert conf_many >= conf_few
+
+
+# =========================================================================
+# Edge / Error Cases
+# =========================================================================
+
+class TestEvaluateEdgeCases:
+    """Boundary and error tests for evaluation logic."""
+
+    def test_empty_text(self):
+        """Empty text should classify as noise."""
+        artifact = {"artifact_id": "t1", "source_kind": "news"}
+        bucket_config = {
+            "deal_signal": {
+                "keywords": ["funding"],
+                "source_kinds": ["news"],
+            }
+        }
+        results = evaluate_artifact(artifact, "", bucket_config)
+        assert len(results) == 1
+        assert results[0]["bucket"] == "noise"
+
+    def test_empty_bucket_config(self):
+        """Empty bucket config should classify everything as noise."""
+        artifact = {"artifact_id": "t2", "source_kind": "news"}
+        results = evaluate_artifact(artifact, "Company raised funding.", {})
+        assert len(results) == 1
+        assert results[0]["bucket"] == "noise"
+
+    def test_confidence_never_exceeds_one(self):
+        """Even with many keyword matches, confidence is capped at 1.0."""
+        artifact = {"artifact_id": "t3", "source_kind": "news"}
+        # 20 keywords all present — confidence formula: 0.5 + 0.1*20 = 2.5 → capped at 1.0
+        keywords = [f"kw{i}" for i in range(20)]
+        text = " ".join(keywords)
+        bucket_config = {
+            "test_bucket": {"keywords": keywords, "source_kinds": ["news"]}
+        }
+        results = evaluate_artifact(artifact, text, bucket_config)
+        matched = next(r for r in results if r["bucket"] == "test_bucket")
+        assert matched["confidence"] <= 1.0
+
+    def test_confidence_minimum_with_one_match(self):
+        """Single keyword match gives confidence = 0.6 (0.5 + 0.1*1)."""
+        artifact = {"artifact_id": "t4", "source_kind": "news"}
+        results = evaluate_artifact(
+            artifact, "This is about funding.",
+            {"deal_signal": {"keywords": ["funding"], "source_kinds": ["news"]}}
+        )
+        deal = next(r for r in results if r["bucket"] == "deal_signal")
+        assert deal["confidence"] == pytest.approx(0.6, abs=0.01)
+
+    def test_investor_portfolio_special_case(self):
+        """investor_portfolio source_kind always matches investor_graph_change."""
+        artifact = {"artifact_id": "t5", "source_kind": "investor_portfolio"}
+        # No keywords match, but special case should fire
+        results = evaluate_artifact(
+            artifact, "Completely unrelated text about cooking.",
+            {"investor_graph_change": {"keywords": ["invested"], "source_kinds": ["filing"]}}
+        )
+        buckets = [r["bucket"] for r in results]
+        assert "investor_graph_change" in buckets
+
+    def test_telemetry_special_case(self):
+        """telemetry source_kind always matches telemetry_change."""
+        artifact = {"artifact_id": "t6", "source_kind": "telemetry"}
+        results = evaluate_artifact(
+            artifact, "Random text.",
+            {"telemetry_change": {"keywords": ["hiring"], "source_kinds": ["news"]}}
+        )
+        buckets = [r["bucket"] for r in results]
+        assert "telemetry_change" in buckets
+
+    def test_source_kind_mismatch_no_match(self):
+        """Keywords match but source_kind doesn't → no bucket assigned."""
+        artifact = {"artifact_id": "t7", "source_kind": "blog"}
+        results = evaluate_artifact(
+            artifact, "Company raised funding.",
+            {"deal_signal": {"keywords": ["funding"], "source_kinds": ["filing"]}}
+        )
+        assert all(r["bucket"] == "noise" for r in results)
+
+    def test_missing_source_kind_field(self):
+        """Artifact without source_kind defaults to 'unknown'."""
+        artifact = {"artifact_id": "t8"}
+        results = evaluate_artifact(
+            artifact, "Company raised funding.",
+            {"deal_signal": {"keywords": ["funding"], "source_kinds": []}}
+        )
+        # source_kinds=[] means any source matches
+        buckets = [r["bucket"] for r in results]
+        assert "deal_signal" in buckets
+
+
+class TestMatchKeywordsEdgeCases:
+    """Boundary tests for keyword matching."""
+
+    def test_special_regex_characters(self):
+        """Keywords with regex special chars are escaped properly (no crash).
+
+        Note: \b word-boundary before non-word chars like $ or ( means
+        the keyword won't actually match, but the function must not raise.
+        """
+        text = "Company valued at $50M (2x revenue)."
+        matches = match_keywords(text, ["$50M", "(2x"])
+        # These won't match due to \b + non-word-char, but must not crash
+        assert isinstance(matches, list)
+
+    def test_keyword_at_start_and_end(self):
+        """Keywords at very start or end of text match."""
+        text = "funding at the end of this sentence is funding"
+        matches = match_keywords(text, ["funding"])
+        assert "funding" in matches
+
+    def test_empty_keywords_list(self):
+        """Empty keyword list returns empty matches."""
+        assert match_keywords("anything", []) == []
+
+    def test_empty_text(self):
+        """Empty text returns no matches."""
+        assert match_keywords("", ["funding"]) == []
